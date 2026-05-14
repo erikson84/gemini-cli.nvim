@@ -323,11 +323,7 @@ func registerTools(s *mcp.Server) {
 			return nil, nil, fmt.Errorf("%s", errStr)
 		}
 		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: "Diff view opened in Neovim.",
-				},
-			},
+			Content: []mcp.Content{},
 		}, nil, nil
 	})
 

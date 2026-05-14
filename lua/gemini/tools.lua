@@ -207,17 +207,20 @@ function M.accept_diff(file_path)
 		return
 	end
 
-	local new_lines = vim.split(session.new_content, "\n")
-	vim.api.nvim_buf_set_lines(session.bufnr, 0, -1, false, new_lines)
+	local lines = vim.api.nvim_buf_get_lines(session.scratch_buf, 0, -1, false)
+	local new_content = table.concat(lines, "\n")
+	if #lines > 0 then
+		new_content = new_content .. "\n"
+	end
 
-	-- Mark as unmodified so external tools (gemini edit)
-	-- can write to disk without triggering a W12 conflict warning.
+	vim.api.nvim_buf_set_lines(session.bufnr, 0, -1, false, lines)
+
 	vim.api.nvim_set_option_value("modified", false, { buf = session.bufnr })
 
 	if session.job_id then
 		vim.rpcnotify(session.job_id, "diff_accepted", {
 			filePath = file_path,
-			content = session.new_content,
+			content = new_content,
 		})
 	end
 
@@ -278,8 +281,21 @@ end
 
 function M.close_diff(file_path)
 	file_path = vim.fn.fnamemodify(file_path, ":p")
+	local session = diff_sessions[file_path]
+
+	if not session then
+		return { content = "" }
+	end
+
+	local lines = vim.api.nvim_buf_get_lines(session.scratch_buf, 0, -1, false)
+	local content = table.concat(lines, "\n")
+	if #lines > 0 then
+		content = content .. "\n"
+	end
+
 	M.cleanup_session(file_path)
-	return { result = "closed" }
+
+	return { content = content }
 end
 
 function M.get_context(preferred_bufnr)

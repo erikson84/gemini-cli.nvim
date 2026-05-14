@@ -208,6 +208,7 @@ You are working alongside a human developer who may be **actively editing** the 
     * **Usage:** Use `getReferences` to see how code is being used across the project.
 
 **INTERACTION HINTS:**
+* **Creating New Files:** When creating a brand-new file, ALWAYS attempt to `read_file` the path first (even if it doesn't exist yet). This "warms up" the path in the internal tracker and prevents a known crash in the `write_file` tool.
 * If you see `[Output Redacted]`, the file is too large. Use `readSymbol` or `getFileOutline` instead.
 * You have access to the user's cursor via `ide/contextUpdate`. If the user says "here" or "this", refer to the active file/cursor in that context.
 ]])

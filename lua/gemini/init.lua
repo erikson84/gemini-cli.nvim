@@ -104,7 +104,16 @@ local function start_server()
 
 	-- Notify server to initialize once it's connected
 	if job_id > 0 then
-		vim.rpcnotify(job_id, "initialize")
+		local init_args = {
+			workspacePaths = { vim.fn.getcwd() },
+			ideInfo = {
+				name = "neovim",
+				displayName = "Neovim",
+			},
+			parentPid = vim.fn.getpid(),
+		}
+		vim.rpcnotify(job_id, "initialize", init_args)
+
 		if last_opts and last_opts.debug then
 			vim.notify("Gemini: Server initialized", vim.log.levels.DEBUG)
 		end

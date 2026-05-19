@@ -7,7 +7,10 @@ function M.ensure_buffer(file_path)
 	file_path = vim.fn.fnamemodify(file_path, ":p")
 	local bufnr = vim.fn.bufnr(file_path, true)
 	if not vim.api.nvim_buf_is_loaded(bufnr) then
-		vim.fn.bufload(bufnr)
+		-- Only attempt to load if the file actually exists on disk
+		if vim.fn.filereadable(file_path) == 1 then
+			vim.fn.bufload(bufnr)
+		end
 		-- Ensure filetype is set so LSP can attach
 		if vim.api.nvim_get_option_value("filetype", { buf = bufnr }) == "" then
 			vim.api.nvim_buf_call(bufnr, function()
@@ -209,13 +212,9 @@ function M.accept_diff(file_path)
 
 	local lines = vim.api.nvim_buf_get_lines(session.scratch_buf, 0, -1, false)
 	local new_content = table.concat(lines, "\n")
-	if #lines > 0 then
+	if #lines > 0 and lines[#lines] ~= "" then
 		new_content = new_content .. "\n"
 	end
-
-	vim.api.nvim_buf_set_lines(session.bufnr, 0, -1, false, lines)
-
-	vim.api.nvim_set_option_value("modified", false, { buf = session.bufnr })
 
 	if session.job_id then
 		vim.rpcnotify(session.job_id, "diff_accepted", {
@@ -225,7 +224,7 @@ function M.accept_diff(file_path)
 	end
 
 	M.cleanup_session(file_path)
-	vim.notify("[gemini] Diff accepted.", vim.log.levels.INFO)
+	vim.notify("[gemini] Diff accepted. Applying changes...", vim.log.levels.INFO)
 end
 
 function M.reject_diff(file_path)
@@ -289,17 +288,13 @@ function M.close_diff(file_path)
 
 	local lines = vim.api.nvim_buf_get_lines(session.scratch_buf, 0, -1, false)
 	local content = table.concat(lines, "\n")
-	if #lines > 0 then
+	if #lines > 0 and lines[#lines] ~= "" then
 		content = content .. "\n"
 	end
 
 	M.cleanup_session(file_path)
 
 	return { content = content }
-end
-
-function M.get_context(preferred_bufnr)
-	return require("gemini.context").get_context(preferred_bufnr)
 end
 
 -- --- LSP & Treesitter Tools ---

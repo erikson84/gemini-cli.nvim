@@ -325,11 +325,7 @@ You are working alongside a human developer who may be **actively editing** the 
 
 	vim.api.nvim_create_autocmd("BufFilePost", {
 		group = group,
-		callback = function(args)
-			-- This is triggered after :file or renaming
-			-- We don't have the old name easily here, but we can re-sync
-			debounced_send_context()
-		end,
+		callback = debounced_send_context,
 	})
 
 	-- Define User Commands

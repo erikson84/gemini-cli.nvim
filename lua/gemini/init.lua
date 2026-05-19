@@ -270,14 +270,15 @@ You are working alongside a human developer who may be **actively editing** the 
 			local current_buf = vim.api.nvim_get_current_buf()
 			local buftype = vim.api.nvim_get_option_value("buftype", { buf = current_buf })
 
-			if buftype ~= "" then
-				return
+			-- We only skip sending if the current buffer is invalid, 
+			-- but we still use the last valid buffer to maintain context.
+			if buftype == "" then
+				last_valid_buf = current_buf
 			end
 
-			last_valid_buf = current_buf
-
-			local context = tools.get_context(last_valid_buf)
+			local context = require("gemini.context").get_context(last_valid_buf)
 			vim.rpcnotify(job_id, "context_update", context)
+
 			if last_opts and last_opts.debug then
 				local active_file = nil
 				for _, file in ipairs(context.workspaceState.openFiles) do
@@ -312,6 +313,23 @@ You are working alongside a human developer who may be **actively editing** the 
 	vim.api.nvim_create_autocmd({ "BufEnter", "CursorMoved", "CursorMovedI", "FocusGained", "ModeChanged" }, {
 		group = group,
 		callback = debounced_send_context,
+	})
+
+	vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+		group = group,
+		callback = function(args)
+			require("gemini.context").remove_file(vim.api.nvim_buf_get_name(args.buf))
+			debounced_send_context()
+		end,
+	})
+
+	vim.api.nvim_create_autocmd("BufFilePost", {
+		group = group,
+		callback = function(args)
+			-- This is triggered after :file or renaming
+			-- We don't have the old name easily here, but we can re-sync
+			debounced_send_context()
+		end,
 	})
 
 	-- Define User Commands
